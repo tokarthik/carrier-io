@@ -53,15 +53,15 @@ services:
       - /opt/carrier/dev/ext/disablessl.sh:/tmp/disablessl.sh
     environment:
       - DB_ADDR=carrier-postgres
-      - DB_VENDOR=$DATABASE_VENDOR
-      - KEYCLOAK_USER=$KEYCLOAK_USER
-      - KEYCLOAK_PASSWORD=$KEYCLOAK_PASSWORD
+      - DB_VENDOR=postgres
+      - KEYCLOAK_USER=carrier
+      - KEYCLOAK_PASSWORD=carrier
       - KEYCLOAK_IMPORT=/realm/data/carrier.json
-      - DB_DATABASE=$POSTGRES_DB
-      - DB_USER=$POSTGRES_USER
-      - DB_PASSWORD=$POSTGRES_PASSWORD
-      - DB_SCHEMA=$KEYCLOAK_DB_SCHEMA
-      - PROXY_ADDRESS_FORWARDING=$PROXY_ADDRESS_FORWARDING
+      - DB_DATABASE=carrier
+      - DB_USER=carrier
+      - DB_PASSWORD=password
+      - DB_SCHEMA=keycloak
+      - PROXY_ADDRESS_FORWARDING=true
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.keycloak.rule=PathPrefix(`/auth`)"
@@ -74,12 +74,12 @@ services:
     depends_on:
       - keycloak
     environment:
-      - CONFIG_FILENAME=$AUTH_CONFIG_FILENAME
+      - CONFIG_FILENAME=/config/settings.yaml
       - APP_HOST=http://18.233.58.51
-      - KEYCLOAK_KEY=$KEYCLOAK_KEY
+      - KEYCLOAK_KEY=9edcea33-3b8f-4129-8557-eb2ee2de1440
       - REDIS_HOST=carrier-redis
-      - REDIS_DB=$AUTH_REDIS_DB
-      - REDIS_PASSWORD=$REDIS_PASSWORD
+      - REDIS_DB=3
+      - REDIS_PASSWORD=password
     volumes:
       - /opt/carrier/dev/carrier-auth/:/config/
       # - /opt/carrier/dev/carrier-auth/settings.yaml:$AUTH_CONFIG_FILENAME
@@ -102,19 +102,19 @@ services:
       - REDIS_HOST=carrier-redis
       - POSTGRES_HOST=carrier-postgres
       - REDIS_DB=$FAAS_REDIS_DB
-      - REDIS_PASSWORD=$REDIS_PASSWORD
-      - CPU_CORES=$FAAS_PARALLEL_TASKS
+      - REDIS_PASSWORD=password
+      - CPU_CORES=2
       - APP_HOST=http://18.233.58.51
-      - MINIO_HOST=$MINIO_HOST
-      - MINIO_ACCESS_KEY=$MINIO_ACCESS_KEY
-      - MINIO_SECRET_KEY=$MINIO_SECRET_KEY
-      - MINIO_REGION=$MINIO_REGION
-      - DATABASE_SCHEMA=$GL_POSTGRES_SCHEMA
-      - DATABASE_VENDOR=$DATABASE_VENDOR
-      - POSTGRES_DB=$POSTGRES_DB
-      - POSTGRES_USER=$POSTGRES_USER
-      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-      - VAULT_URL=$VAULT_URL
+      - MINIO_HOST=http://carrier-minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password
+      - MINIO_REGION=us-east-1
+      - DATABASE_SCHEMA=carrier
+      - DATABASE_VENDOR=postgres
+      - POSTGRES_DB=carrier
+      - POSTGRES_USER=carrier
+      - POSTGRES_PASSWORD=password
+      - VAULT_URL=http://carrier-vault:8200
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.galloper.rule=PathPrefix(`/`)"
@@ -127,7 +127,7 @@ services:
     image: influxdb:1.7
     restart: unless-stopped
     environment:
-      - INFLUXDB_META_DIR=$INFLUXDB_META_DIR
+      - INFLUXDB_META_DIR="/var/lib/influxdb/meta"
       - INFLUXDB_DATA_DIR=$INFLUXDB_DATA_DIR
       - INFLUXDB_DATA_WAL_DIR=$INFLUXDB_DATA_WAL_DIR
       - INFLUXDB_HTTP_ENABLED=$INFLUXDB_HTTP_ENABLED
@@ -160,7 +160,7 @@ services:
       - GF_AUTH_SIGNOUT_REDIRECT_URL=http://18.233.58.51/forward-auth/oidc/logout
       - GF_AUTH_PROXY_HEADER_NAME=$GF_AUTH_PROXY_HEADER_NAME
       - GF_AUTH_PROXY_HEADER_PROPERTY=$GF_AUTH_PROXY_HEADER_PROPERTY
-      - GF_AUTH_PROXY_HEADERS=$GF_AUTH_PROXY_HEADERS
+      - GF_AUTH_PROXY_HEADERS=Name:X-WEBAUTH-NAME Email:X-WEBAUTH-EMAIL
       - GF_AUTH_PROXY_AUTO_SIGN_UP=$GF_AUTH_PROXY_AUTO_SIGN_UP
     labels:
       - "traefik.enable=true"
