@@ -49,14 +49,14 @@ services:
       - postgres
     volumes:
       - /opt/carrier/dev/carrier-auth/:/realm/data/
-      - /opt/carrier/dev/carrier-auth/carrier.json:$KEYCLOAK_IMPORT
+      - /opt/carrier/dev/carrier-auth/carrier.json:/realm/data/carrier.json
       - /opt/carrier/dev/ext/disablessl.sh:/tmp/disablessl.sh
     environment:
       - DB_ADDR=carrier-postgres
       - DB_VENDOR=$DATABASE_VENDOR
       - KEYCLOAK_USER=$KEYCLOAK_USER
       - KEYCLOAK_PASSWORD=$KEYCLOAK_PASSWORD
-      - KEYCLOAK_IMPORT=$KEYCLOAK_IMPORT
+      - KEYCLOAK_IMPORT=/realm/data/carrier.json
       - DB_DATABASE=$POSTGRES_DB
       - DB_USER=$POSTGRES_USER
       - DB_PASSWORD=$POSTGRES_PASSWORD
