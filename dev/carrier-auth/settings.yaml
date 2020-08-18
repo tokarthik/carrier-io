@@ -15,8 +15,8 @@ auth:
   login_default_redirect_url: "${APP_HOST}/"
   logout_default_redirect_url: "${APP_HOST}/"
   logout_allowed_redirect_urls:
-  - ${APP_HOST}/
-  - "/forward-auth/oidc/token/redirect"
+    - ${APP_HOST}/
+    - "/forward-auth/oidc/token/redirect"
 mappers:
   header:
     grafana:
@@ -35,8 +35,8 @@ oidc:
     client_id: carrier-oidc
     client_secret: ${KEYCLOAK_KEY}
     redirect_uris:
-    - "${APP_HOST}/forward-auth/oidc"
-    - "${APP_HOST}/forward-auth/oidc/callback"
-    - "${APP_HOST}/forward-auth/oidc/token/callback"
+      - "${APP_HOST}/forward-auth/oidc"
+      - "${APP_HOST}/forward-auth/oidc/callback"
+      - "${APP_HOST}/forward-auth/oidc/token/callback"
     post_logout_redirect_uris:
-    - "${APP_HOST}"
+      - "${APP_HOST}"

@@ -1,15 +1,16 @@
-version: '3'
+version: "3"
 services:
   traefik:
     image: traefik:cantal
     restart: unless-stopped
     volumes:
+      - $CARRIER_PATH/traefik/:/etc/traefik/
       - $CARRIER_PATH/traefik/traefik.toml:/etc/traefik/traefik.toml
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 80:80
     labels:
-      - 'carrier=traefik'
+      - "carrier=traefik"
     container_name: carrier-traefic
   postgres:
     image: postgres:12.2
@@ -17,6 +18,7 @@ services:
     container_name: carrier-postgres
     volumes:
       - $CARRIER_PATH/postgre:/var/lib/postgresql/data
+      - $CARRIER_PATH/ext/:/docker-entrypoint-initdb.d/
       - $CARRIER_PATH/ext/postgre_schemas.sh:/docker-entrypoint-initdb.d/postgre_schemas.sh
     environment:
       - POSTGRES_DB=$POSTGRES_DB
@@ -25,8 +27,8 @@ services:
       - POSTGRES_SCHEMAS=$DB_POSTGRES_SCHEMAS
       - POSTGRES_INITDB_ARGS=$POSTGRES_INITDB_ARGS
     labels:
-      - 'traefik.enable=false'
-      - 'carrier=postgres'
+      - "traefik.enable=false"
+      - "carrier=postgres"
   vault:
     image: vault:latest
     restart: unless-stopped
@@ -34,8 +36,8 @@ services:
       - 'VAULT_LOCAL_CONFIG={"disable_mlock":true,"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable": 1}},"storage":{"postgresql":{"connection_url":"postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@carrier-postgres:5432/${POSTGRES_DB}?sslmode=disable"}},"ui":false}'
     command: vault server -config=/vault/config/local.json
     labels:
-      - 'traefik.enable=false'
-      - 'carrier=vault'
+      - "traefik.enable=false"
+      - "carrier=vault"
     container_name: carrier-vault
     depends_on:
       - postgres
@@ -46,6 +48,7 @@ services:
     depends_on:
       - postgres
     volumes:
+      - $CARRIER_PATH/carrier-auth/:/realm/data/
       - $CARRIER_PATH/carrier-auth/carrier.json:$KEYCLOAK_IMPORT
       - $CARRIER_PATH/ext/disablessl.sh:/tmp/disablessl.sh
     environment:
@@ -60,10 +63,10 @@ services:
       - DB_SCHEMA=$KEYCLOAK_DB_SCHEMA
       - PROXY_ADDRESS_FORWARDING=$PROXY_ADDRESS_FORWARDING
     labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.keycloak.rule=PathPrefix(`/auth`)'
-      - 'traefik.http.services.keycloak.loadbalancer.server.port=8080'
-      - 'carrier=keycloak'
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=PathPrefix(`/auth`)"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "carrier=keycloak"
   auth:
     image: getcarrier/carrier-auth:latest
     restart: unless-stopped
@@ -78,12 +81,13 @@ services:
       - REDIS_DB=$AUTH_REDIS_DB
       - REDIS_PASSWORD=$REDIS_PASSWORD
     volumes:
+      - $CARRIER_PATH/carrier-auth/:/config/
       - $CARRIER_PATH/carrier-auth/settings.yaml:$AUTH_CONFIG_FILENAME
     labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.carrier-auth.rule=PathPrefix(`/forward-auth`)'
-      - 'traefik.http.services.carrier-auth.loadbalancer.server.port=80'
-      - 'carrier=auth'
+      - "traefik.enable=true"
+      - "traefik.http.routers.carrier-auth.rule=PathPrefix(`/forward-auth`)"
+      - "traefik.http.services.carrier-auth.loadbalancer.server.port=80"
+      - "carrier=auth"
   galloper:
     image: getcarrier/galloper:latest
     restart: unless-stopped
@@ -112,12 +116,12 @@ services:
       - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
       - VAULT_URL=$VAULT_URL
     labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.galloper.rule=PathPrefix(`/`)'
-      - 'traefik.http.services.galloper.loadbalancer.server.port=5000'
-      - 'traefik.http.middlewares.galloper-auth.forwardauth.address=http://carrier-auth/forward-auth/auth?target=json&scope=galloper'
-      - 'traefik.http.routers.galloper.middlewares=galloper-auth@docker'
-      - 'carrier=galloper'
+      - "traefik.enable=true"
+      - "traefik.http.routers.galloper.rule=PathPrefix(`/`)"
+      - "traefik.http.services.galloper.loadbalancer.server.port=5000"
+      - "traefik.http.middlewares.galloper-auth.forwardauth.address=http://carrier-auth/forward-auth/auth?target=json&scope=galloper"
+      - "traefik.http.routers.galloper.middlewares=galloper-auth@docker"
+      - "carrier=galloper"
     container_name: carrier-galloper
   influx:
     image: influxdb:1.7
@@ -133,7 +137,7 @@ services:
       - 2003:2003
       - 8086:8086
     labels:
-      - 'traefik.enable=false'
+      - "traefik.enable=false"
     container_name: carrier-influx
   grafana:
     image: grafana/grafana:6.4.4
@@ -159,13 +163,13 @@ services:
       - GF_AUTH_PROXY_HEADERS=$GF_AUTH_PROXY_HEADERS
       - GF_AUTH_PROXY_AUTO_SIGN_UP=$GF_AUTH_PROXY_AUTO_SIGN_UP
     labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)'
-      - 'traefik.http.services.grafana.loadbalancer.server.port=3000'
-      - 'traefik.http.middlewares.grafana-auth.forwardauth.address=http://carrier-auth/forward-auth/auth?target=header&scope=grafana'
-      - 'traefik.http.middlewares.grafana-auth.forwardauth.authResponseHeaders=X-WEBAUTH-USER, X-WEBAUTH-NAME, X-WEBAUTH-EMAIL'
-      - 'traefik.http.routers.grafana.middlewares=grafana-auth@docker'
-      - 'carrier=grafana'
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.grafana-auth.forwardauth.address=http://carrier-auth/forward-auth/auth?target=header&scope=grafana"
+      - "traefik.http.middlewares.grafana-auth.forwardauth.authResponseHeaders=X-WEBAUTH-USER, X-WEBAUTH-NAME, X-WEBAUTH-EMAIL"
+      - "traefik.http.routers.grafana.middlewares=grafana-auth@docker"
+      - "carrier=grafana"
     user: root
     container_name: carrier-grafana
   loki:
@@ -175,7 +179,7 @@ services:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     labels:
-      - 'traefik.enable=false'
+      - "traefik.enable=false"
     container_name: carrier-loki
   minio:
     image: minio/minio:RELEASE.2019-10-12T01-39-57Z
@@ -185,7 +189,7 @@ services:
     volumes:
       - $CARRIER_PATH/minio:/data
     labels:
-      - 'traefik.enable=false'
+      - "traefik.enable=false"
     container_name: carrier-minio
     command: server /data
   redis:
@@ -199,7 +203,7 @@ services:
       - --requirepass
       - $REDIS_PASSWORD
     labels:
-      - 'traefik.enable=false'
+      - "traefik.enable=false"
   observer_chrome:
     image: getcarrier/observer-chrome:latest
     restart: unless-stopped
@@ -210,7 +214,7 @@ services:
       - 9999:9999
     container_name: observer-chrome
     labels:
-      - 'traefik.enable=false'
+      - "traefik.enable=false"
   interceptor:
     image: getcarrier/interceptor:latest
     depends_on:
