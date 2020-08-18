@@ -4,8 +4,8 @@ services:
     image: traefik:cantal
     restart: unless-stopped
     volumes:
-      - $CARRIER_PATH/traefik/:/etc/traefik/
-      # - $CARRIER_PATH/traefik/traefik.toml:/etc/traefik/traefik.toml
+      - /opt/carrier/dev/traefik/:/etc/traefik/
+      # - /opt/carrier/dev/traefik/traefik.toml:/etc/traefik/traefik.toml
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 80:80
@@ -17,9 +17,9 @@ services:
     restart: unless-stopped
     container_name: carrier-postgres
     volumes:
-      - $CARRIER_PATH/postgre:/var/lib/postgresql/data
-      - $CARRIER_PATH/ext/:/docker-entrypoint-initdb.d/
-      - $CARRIER_PATH/ext/postgre_schemas.sh:/docker-entrypoint-initdb.d/postgre_schemas.sh
+      - /opt/carrier/dev/postgre:/var/lib/postgresql/data
+      - /opt/carrier/dev/ext/:/docker-entrypoint-initdb.d/
+      - /opt/carrier/dev/ext/postgre_schemas.sh:/docker-entrypoint-initdb.d/postgre_schemas.sh
     environment:
       - POSTGRES_DB=$POSTGRES_DB
       - POSTGRES_USER=$POSTGRES_USER
@@ -48,9 +48,9 @@ services:
     depends_on:
       - postgres
     volumes:
-      - $CARRIER_PATH/carrier-auth/:/realm/data/
-      - $CARRIER_PATH/carrier-auth/carrier.json:$KEYCLOAK_IMPORT
-      - $CARRIER_PATH/ext/disablessl.sh:/tmp/disablessl.sh
+      - /opt/carrier/dev/carrier-auth/:/realm/data/
+      - /opt/carrier/dev/carrier-auth/carrier.json:$KEYCLOAK_IMPORT
+      - /opt/carrier/dev/ext/disablessl.sh:/tmp/disablessl.sh
     environment:
       - DB_ADDR=carrier-postgres
       - DB_VENDOR=$DATABASE_VENDOR
@@ -75,14 +75,14 @@ services:
       - keycloak
     environment:
       - CONFIG_FILENAME=$AUTH_CONFIG_FILENAME
-      - APP_HOST=$APP_HOST
+      - APP_HOST=http://18.233.58.51
       - KEYCLOAK_KEY=$KEYCLOAK_KEY
       - REDIS_HOST=carrier-redis
       - REDIS_DB=$AUTH_REDIS_DB
       - REDIS_PASSWORD=$REDIS_PASSWORD
     volumes:
-      - $CARRIER_PATH/carrier-auth/:/config/
-      # - $CARRIER_PATH/carrier-auth/settings.yaml:$AUTH_CONFIG_FILENAME
+      - /opt/carrier/dev/carrier-auth/:/config/
+      # - /opt/carrier/dev/carrier-auth/settings.yaml:$AUTH_CONFIG_FILENAME
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.carrier-auth.rule=PathPrefix(`/forward-auth`)"
@@ -104,7 +104,7 @@ services:
       - REDIS_DB=$FAAS_REDIS_DB
       - REDIS_PASSWORD=$REDIS_PASSWORD
       - CPU_CORES=$FAAS_PARALLEL_TASKS
-      - APP_HOST=$APP_HOST
+      - APP_HOST=http://18.233.58.51
       - MINIO_HOST=$MINIO_HOST
       - MINIO_ACCESS_KEY=$MINIO_ACCESS_KEY
       - MINIO_SECRET_KEY=$MINIO_SECRET_KEY
@@ -132,7 +132,7 @@ services:
       - INFLUXDB_DATA_WAL_DIR=$INFLUXDB_DATA_WAL_DIR
       - INFLUXDB_HTTP_ENABLED=$INFLUXDB_HTTP_ENABLED
     volumes:
-      - $CARRIER_PATH/influx:/var/lib/influxdb/data
+      - /opt/carrier/dev/influx:/var/lib/influxdb/data
     ports:
       - 2003:2003
       - 8086:8086
@@ -145,7 +145,7 @@ services:
     depends_on:
       - influx
     volumes:
-      - $CARRIER_PATH/grafana:/var/lib/grafana
+      - /opt/carrier/dev/grafana:/var/lib/grafana
     environment:
       - GF_PANELS_DISABLE_SANITIZE_HTML=$GF_PANELS_DISABLE_SANITIZE_HTML
       - GF_AUTH_PROXY_ENABLED=$GF_AUTH_PROXY_ENABLED
@@ -157,7 +157,7 @@ services:
       - GF_SECURITY_DISABLE_GRAVATAR=$GF_SECURITY_DISABLE_GRAVATAR
       - GF_SECURITY_ALLOW_EMBEDDING=$GF_SECURITY_ALLOW_EMBEDDING
       - GF_AUTH_DISABLE_LOGIN_FORM=$GF_AUTH_DISABLE_LOGIN_FORM
-      - GF_AUTH_SIGNOUT_REDIRECT_URL=$APP_HOST/forward-auth/oidc/logout
+      - GF_AUTH_SIGNOUT_REDIRECT_URL=http://18.233.58.51/forward-auth/oidc/logout
       - GF_AUTH_PROXY_HEADER_NAME=$GF_AUTH_PROXY_HEADER_NAME
       - GF_AUTH_PROXY_HEADER_PROPERTY=$GF_AUTH_PROXY_HEADER_PROPERTY
       - GF_AUTH_PROXY_HEADERS=$GF_AUTH_PROXY_HEADERS
@@ -187,7 +187,7 @@ services:
       - MINIO_ACCESS_KEY=$MINIO_ACCESS_KEY
       - MINIO_SECRET_KEY=$MINIO_SECRET_KEY
     volumes:
-      - $CARRIER_PATH/minio:/data
+      - /opt/carrier/dev/minio:/data
     labels:
       - "traefik.enable=false"
     container_name: carrier-minio
