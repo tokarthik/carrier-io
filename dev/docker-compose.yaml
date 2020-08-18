@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     volumes:
       - $CARRIER_PATH/traefik/:/etc/traefik/
-      - $CARRIER_PATH/traefik/traefik.toml:/etc/traefik/traefik.toml
+      # - $CARRIER_PATH/traefik/traefik.toml:/etc/traefik/traefik.toml
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 80:80
@@ -82,7 +82,7 @@ services:
       - REDIS_PASSWORD=$REDIS_PASSWORD
     volumes:
       - $CARRIER_PATH/carrier-auth/:/config/
-      - $CARRIER_PATH/carrier-auth/settings.yaml:$AUTH_CONFIG_FILENAME
+      # - $CARRIER_PATH/carrier-auth/settings.yaml:$AUTH_CONFIG_FILENAME
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.carrier-auth.rule=PathPrefix(`/forward-auth`)"
