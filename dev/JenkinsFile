@@ -1,0 +1,132 @@
+pipeline {
+    
+agent any
+     
+	environment {
+		galloper = "http://ec2-54-237-78-42.compute-1.amazonaws.com"
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIxNjQ5ODY1Ny04OTYyLTRiZmUtYjY2OS0yZDQyYjEyMzQ0ODQifQ.eyJqdGkiOiI1YTI3Zjk4NS05MWVmLTQxMjUtYmY1Ny02MTkwZmZjYjQ3ZDgiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTk4Mjg3MTg2LCJpc3MiOiJodHRwOi8vZWMyLTU0LTIzNy03OC00Mi5jb21wdXRlLTEuYW1hem9uYXdzLmNvbS9hdXRoL3JlYWxtcy9jYXJyaWVyIiwiYXVkIjoiaHR0cDovL2VjMi01NC0yMzctNzgtNDIuY29tcHV0ZS0xLmFtYXpvbmF3cy5jb20vYXV0aC9yZWFsbXMvY2FycmllciIsInN1YiI6IjMyZDhhOGQ1LTlkYTAtNGMzNi1hMGQ5LWY1ZTJlNGI2NGJiNyIsInR5cCI6Ik9mZmxpbmUiLCJhenAiOiJjYXJyaWVyLW9pZGMiLCJub25jZSI6IjVkd0pISHhuWTZOSjNoaFciLCJhdXRoX3RpbWUiOjAsInNlc3Npb25fc3RhdGUiOiIwZmVkMGUyMy0zNDU0LTRjYWItODZkYi1hYWFlNmI3MDVmNjYiLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy1pZGVudGl0eS1wcm92aWRlcnMiLCJ2aWV3LXJlYWxtIiwibWFuYWdlLWlkZW50aXR5LXByb3ZpZGVycyIsImltcGVyc29uYXRpb24iLCJyZWFsbS1hZG1pbiIsImNyZWF0ZS1jbGllbnQiLCJtYW5hZ2UtdXNlcnMiLCJxdWVyeS1yZWFsbXMiLCJ2aWV3LWF1dGhvcml6YXRpb24iLCJxdWVyeS1jbGllbnRzIiwicXVlcnktdXNlcnMiLCJtYW5hZ2UtZXZlbnRzIiwibWFuYWdlLXJlYWxtIiwidmlldy1ldmVudHMiLCJ2aWV3LXVzZXJzIiwidmlldy1jbGllbnRzIiwibWFuYWdlLWF1dGhvcml6YXRpb24iLCJtYW5hZ2UtY2xpZW50cyIsInF1ZXJ5LWdyb3VwcyJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJvcGVuaWQgb2ZmbGluZV9hY2Nlc3MgZW1haWwgcHJvZmlsZSJ9.4-_u2cingP0tgSqIhYasgLjTpaAXvftRB2ajosTSF40"
+        redis_pwd = 'password'
+        redis_host = "http://ec2-54-237-78-42.compute-1.amazonaws.com"
+	}
+    
+	stages {
+	    stage('Checkout') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/branchname']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'qakart', url: 'https://github.com/tokarthik/carrier-io.git']]])
+                sh "ls -lart ./*"
+            }
+        }
+        
+		stage('Deploying Project') {
+		       
+			steps {
+			    sh "who"
+				sh "mkdir reports || echo 'Ok'"
+			    sh "docker run -d -p 9099:8080 -t --rm --name springboot-petclinic getcarrier/petclinic:latest"
+			}
+		}
+		stage('Smoke tests') {
+			steps {
+				echo "Assume it is fine"
+			}
+		}
+		stage('Tests') {
+			parallel {
+				stage('Regression') {
+					steps {
+						echo "Assuming good"
+					}
+				}
+				stage('Performance') {
+					steps {
+						script {
+							def dockerParamsString = "--entrypoint=''"
+							def params = [
+								"-t",
+								"-e project_id=1",
+								"-e galloper_url=$galloper",
+								"-e token=$token"
+							]
+							for (param in params) {
+								dockerParamsString += " ${param}"
+							}
+                            docker.image("getcarrier/control_tower:latest").inside(dockerParamsString){
+                                echo "Starting job"
+                                sh """run --test_id=$backend_test_id -p $WORKSPACE/reports"""
+                            }
+						}
+					}
+				}
+				stage('DAST') {
+					steps {
+					    script {
+                            def filename = 'examples/configs/zapdast.yaml'
+                            def data = readYaml file: filename
+
+                            // Change something in the file
+                            data.global.processing.false_positive.galloper = "$galloper"
+                            data.global.processing.false_positive.project_id = 1
+                            data.global.processing.false_positive.token = "$token"
+                            data.global.reporters.galloper.url = "$galloper"
+                            data.global.reporters.galloper.project_id = 1
+                            data.global.reporters.galloper.token = "$token"
+                            data.global.reporters.html.file = "$WORKSPACE/reports/dast_report.html"
+                            data.global.reporters.junit.file = "$WORKSPACE/reports/dast_report.xml"
+                            data.suites.dast_zap.scanners.dast.zap.target = "http://$security_entrypoint:9099"
+                            data.suites.dast_zap.settings.build_id = "$BUILD_ID"
+                            //writing changes to yaml
+                            writeYaml file: "scan_config.yaml", data: data
+                            def dockerParamsString = "--entrypoint=''"
+							def params = ["-t"]
+							for (param in params) {
+								dockerParamsString += " ${param}"
+							}
+                            docker.image("getcarrier/dast:latest").inside(dockerParamsString){
+                                sh" dusty run -c $WORKSPACE/scan_config.yaml -s dast_zap"
+                            }
+					    }
+					}
+				}
+				stage('UI performance') {
+                    steps {
+                        script {
+                            def dockerParamsString = "--entrypoint=''"
+                            def params = [
+                                    "-t",
+                                    "-e REDIS_HOST=$redis_host",
+                                    "-e REDIS_PASSWORD=$redis_pwd",
+                                    "-e token=$token",
+                                    "-e galloper_url=$galloper",
+                                    "-e bucket=reports",
+                                    "-e project_id=1"
+                            ]
+                            for (param in params) {
+                                dockerParamsString += " ${param}"
+                            }
+                            docker.image("getcarrier/control_tower:latest").inside(dockerParamsString){
+                                echo "Starting job"
+                                sh """run --test_id $ui_test_id"""
+                            }
+                        }
+                    }
+                }
+			}
+		}
+		stage('Promote Build') {
+			steps {
+                echo "assuming good here"
+			}
+		}
+	}
+	post {
+		always {
+		    sh "docker stop springboot-petclinic"
+			junit allowEmptyResults: true, healthScaleFactor: 5.0, testResults: 'reports/*.xml'
+			archiveArtifacts artifacts: 'reports/*.html', fingerprint: true
+			cleanWs()
+		}
+	}
+}
+
+
+
